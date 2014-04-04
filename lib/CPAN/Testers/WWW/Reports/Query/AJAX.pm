@@ -3,7 +3,7 @@ package CPAN::Testers::WWW::Reports::Query::AJAX;
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
  
 #----------------------------------------------------------------------------
 
@@ -156,7 +156,9 @@ sub _basic_pc {
     my $grade   = shift;
     my $version = $self->{options}{version} || $self->{recent};
     return 0    unless($self->{result}{$version}{'all'});
-    return $self->{result}{$version}{$grade} / $self->{result}{$version}{'all'} * 100;
+    my $pc = sprintf "%3.10f", $self->{result}{$version}{$grade} / $self->{result}{$version}{'all'} * 100;
+    $pc =~ s/\.?0+$//;
+    return $pc;
 }
 
 sub _parse {
@@ -343,7 +345,7 @@ Initially released during the 2012 QA Hackathon in Paris.
 
 =head1 COPYRIGHT AND LICENSE
 
-  Copyright (C) 2011-2012 Barbie for Miss Barbell Productions.
+  Copyright (C) 2011-2014 Barbie for Miss Barbell Productions.
 
   This module is free software; you can redistribute it and/or
   modify it under the Artistic License 2.0.
