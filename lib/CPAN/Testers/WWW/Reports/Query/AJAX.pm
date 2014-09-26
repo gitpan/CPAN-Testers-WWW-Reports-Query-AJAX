@@ -3,7 +3,7 @@ package CPAN::Testers::WWW::Reports::Query::AJAX;
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
  
 #----------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ my %rules = (
     patches => qr/^([0-2])$/i,
     perlver => qr/^([\w.]+)$/i,
     osname  => qr/^([\w.]+)$/i,
-    format  => qr/^(text|html|xml)$/i
+    format  => qr/^(csv|html|xml)$/i
 );
 
 my @fields = keys %rules;
@@ -100,13 +100,18 @@ sub new {
     };
     bless $self, $class;
     my @valid = qw(format);
-    
+
+    unless($hash{dist}) {
+        $self->{error} = q{no value for 'dist' provided};
+        return;
+    }
+
     for my $key (@fields) {
         next    unless($hash{$key});
-        $hash{$key} =~ s/$rules{$key}/$1/;
-        next    unless($hash{$key});
+        my ($value) = $hash{$key} =~ m/$rules{$key}/;
+        next    unless($value);
 
-        $self->{options}{$key} = $hash{$key};
+        $self->{options}{$key} = $value;
         push @valid, $key;
     }
 
@@ -115,7 +120,7 @@ sub new {
     # ajax request 
     my $url = $URL;
     $url .= join( '&', map { "$_=$self->{options}{$_}" } @valid ); 
-    #print "URL: $url\n";
+    #print STDERR "# URL: $url\n";
 	eval { $mech->get( $url ); };
     if($@ || !$mech->success()) {
         $self->{error} = $@;
@@ -165,7 +170,7 @@ sub _parse {
     my ($self,$content) = @_;
     $self->{content} = $content;
 
-    if($self->{options}{format} eq 'txt') {
+    if($self->{options}{format} eq 'csv') {
         my @lines = split("\n",$content);
         for my $line (@lines) {
             next if($line =~ /^\s*$/);
@@ -197,7 +202,8 @@ sub _parse {
             $self->{result}{$version}{all}     = $all;
         }
 
-    } elsif($self->{options}{format} eq 'html') {
+    #} elsif($self->{options}{format} eq 'html') {
+    } else {
         # TODO: need to pull out OT response
     }
 
@@ -232,6 +238,62 @@ __END__
 Instatiates the object CPAN::WWW::Testers. Requires a hash of parameters, with
 'config' being the only mandatory key. Note that 'config' can be anything that
 L<Config::IniFiles> accepts for the I<-file> option.
+
+Available parameters are
+
+=over 4
+
+item * dist (required)
+
+The distribution to provide a summary for. An error will be returned if no
+distribution name is provided.
+
+item * version (optional)
+
+Filter based on a specific distribution version. Defaults to the latest 
+version.
+
+item * perlmat (optional)
+
+Filter based on perl maturity, i.e. whether a development version (5.21.3) or
+a stable version (5.20.1). Values are:
+
+=over 4
+
+=item * 0 = all reports
+=item * 1 = stable versions only
+=item * 2 = development versions only
+
+=back
+
+item * patches (optional)
+
+Filter based on whether the perl version is a patch. Values are:
+
+=over 4
+
+=item * 0 = all reports
+=item * 1 = patches only
+=item * 2 = exclude patches
+
+=back
+
+Defaults to all reports.
+
+item * perlver (optional)
+
+Filter based on Perl version, e.g. 5.20.1. Defaults to all versions.
+
+item * osname (optional)
+
+Filter based on Operating System name, e.g. MSWin32. Defaults to all Operating 
+Systems.
+
+item * format (optional)
+
+Available formats are: 'csv', 'html' and 'xml'. Defaults to 'html'.
+
+=back
 
 =back
 
@@ -337,6 +399,30 @@ its taken so long to release. However, you may be interested in his alternative
 query distribution L<CPAN::Testers::Reports::Query::JSON>.
 
 Initially released during the 2012 QA Hackathon in Paris.
+
+=head1 CPAN TESTERS FUND
+
+CPAN Testers wouldn't exist without the help and support of the Perl 
+community. However, since 2008 CPAN Testers has grown far beyond the 
+expectations of it's original creators. As a consequence it now requires
+considerable funding to help support the infrastructure.
+
+In early 2012 the Enlightened Perl Organisation very kindly set-up a
+CPAN Testers Fund within their donatation structure, to help the project
+cover the costs of servers and services.
+
+If you would like to donate to the CPAN Testers Fund, please follow the link
+below to the Enlightened Perl Organisation's donation site.
+
+F<https://members.enlightenedperl.org/drupal/donate-cpan-testers>
+
+If your company would like to support us, you can donate financially via the
+fund link above, or if you have servers or services that we might use, please
+send an email to admin@cpantesters.org with details.
+
+Our full list of current sponsors can be found at our I <3 CPAN Testers site.
+
+F<http://iheart.cpantesters.org>
 
 =head1 AUTHOR
 
